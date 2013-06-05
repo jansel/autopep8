@@ -283,7 +283,9 @@ class FixPEP8(object):
 
     def fix_e101(self, _):
         """Reindent all lines."""
-        reindenter = Reindenter(self.source, self.newline)
+        reindenter = Reindenter(self.source,
+                                self.newline,
+                                self.options.indent_size)
         modified_line_numbers = reindenter.run()
         if modified_line_numbers:
             self.source = reindenter.fixed_lines()
@@ -354,7 +356,7 @@ class FixPEP8(object):
         assert logical
         ls, _, original = logical
 
-        rewrapper = Wrapper(original)
+        rewrapper = Wrapper(original, self.options.indent_size)
         valid_indents = rewrapper.pep8_expected()
         if not rewrapper.rel_indent:
             return []  # pragma: no cover
@@ -1238,8 +1240,9 @@ class Reindenter(object):
 
     """
 
-    def __init__(self, input_text, newline):
+    def __init__(self, input_text, newline, indent_size=4):
         self.newline = newline
+        self.indent_size = indent_size
 
         # Raw file lines.
         self.raw = input_text
@@ -1292,7 +1295,7 @@ class Reindenter(object):
             thisstmt, thislevel = stats[i]
             nextstmt = stats[i + 1][0]
             have = _leading_space_count(lines[thisstmt])
-            want = thislevel * 4
+            want = thislevel * self.indent_size
             if want < 0:
                 # A comment line.
                 if have:
@@ -1306,7 +1309,7 @@ class Reindenter(object):
                             jline, jlevel = stats[j]
                             if jlevel >= 0:
                                 if have == _leading_space_count(lines[jline]):
-                                    want = jlevel * 4
+                                    want = jlevel * self.indent_size
                                 break
                     if want < 0:           # Maybe it's a hanging
                                            # comment like this one,
@@ -1426,8 +1429,9 @@ class Wrapper(object):
         tokenize.DEDENT, tokenize.NEWLINE, tokenize.ENDMARKER
     ])
 
-    def __init__(self, physical_lines):
+    def __init__(self, physical_lines, indent_size=4):
         self.lines = physical_lines
+        self.indent_size = indent_size
         self.tokens = []
         self.rel_indent = None
         sio = StringIO(''.join(physical_lines))
@@ -1555,19 +1559,20 @@ class Wrapper(object):
                         vi.append(indent[depth - 1])
                     else:
                         # stupid fallback
-                        vi.append(indent_level + 4)
+                        vi.append(indent_level + self.indent_size)
                     add_second_chances = True
                 elif not depth:
-                    vi.append(indent_level + 4)
+                    vi.append(indent_level + self.indent_size)
                 else:
                     # must be in hanging indent
-                    hang = rel_indent[open_row] + 4
+                    hang = rel_indent[open_row] + self.indent_size
                     vi.append(indent_level + hang)
 
                 # about the best we can do without look-ahead
-                if (indent_next and vi[0] == indent_level + 4 and
+                if (indent_next and
+                        vi[0] == indent_level + self.indent_size and
                         nrows == row + 1):
-                    vi[0] += 4
+                    vi[0] += self.indent_size
 
                 if add_second_chances:
                     # visual indenters like to line things up.
@@ -2009,6 +2014,9 @@ def parse_args(args):
                       help='fix only these errors/warnings (e.g. E4,W)')
     parser.add_option('--max-line-length', metavar='n', default=79, type=int,
                       help='set maximum allowed line length '
+                           '(default: %default)')
+    parser.add_option('--indent-size', default=4, type=int,
+                      help='number of spaces to use for indentation levels'
                            '(default: %default)')
     options, args = parser.parse_args(args)
 
