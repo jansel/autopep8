@@ -700,27 +700,64 @@ class FixPEP8(object):
         # Check for multiline string.
         try:
             tokens = list(tokenize.generate_tokens(sio.readline))
-        except (SyntaxError, tokenize.TokenError):
-            multiline_candidate = break_multiline(
-                target, newline=self.newline,
-                indent_word=self.indent_word)
+        except (SyntaxError, tokenize.TokenError), e:
+            multiline_candidates = []
+            for lines_before in range(6):
+                for lines_after in range(6):
+                    possible_target_lines = self.source[
+                        line_index - lines_before: line_index + lines_after + 1]
+                    possible_target = ''.join(possible_target_lines)
+                    if not len(possible_target.strip()) > 0:
+                        continue
+                    _buffer = StringIO(possible_target)
+                    try:
+                        tokens = list(tokenize.generate_tokens(
+                            _buffer.readline))
+                    except (SyntaxError, tokenize.TokenError):
+                        continue
+                    relative_index = min(lines_before, line_index)
+                    multiline_candidates.extend(
+                        shorten_multiline([_token for _token in tokens
+                                           if _token[2][0] == relative_index],
+                                          possible_target_lines,
+                                          relative_index,
+                                          indent,
+                                          self.indent_word,
+                                          newline=self.newline,
+                                          aggressive=self.options.aggressive))
+                    break
 
-            if multiline_candidate:
-                self.source[line_index] = multiline_candidate
+            multiline_candidates = list(sorted(
+                set(multiline_candidates),
+                key=lambda x: line_shortening_rank(x,
+                                                   self.newline,
+                                                   self.indent_word)))
+            for _candidate in multiline_candidates:
+                assert _candidate is not None
+
+                if (get_longest_length(_candidate, self.newline) >=
+                        get_longest_length(target, self.newline)):
+                    continue
+
+                self.source[line_index] = _candidate
                 return
-            else:
-                return []
+            return []
 
+        print('source', source)
+        for t in tokens:
+            print(t)
         candidates = shorten_line(
             tokens, source, indent,
             self.indent_word, newline=self.newline,
             aggressive=self.options.aggressive)
+        print('candidates0', candidates)
 
         candidates = list(sorted(
             set(candidates),
             key=lambda x: line_shortening_rank(x,
                                                self.newline,
                                                self.indent_word)))
+        print('candidates', candidates)
 
         if self.options.verbose >= 4:
             print(('-' * 79 + '\n').join([''] + candidates + ['']),
@@ -1071,6 +1108,14 @@ def shorten_line(tokens, source, indentation, indent_word, newline,
                 yield shortened
 
 
+def shorten_multiline(tokens, source_lines, line_num, indentation,
+                      indent_word, newline, aggressive=False):
+    for candidate in _shorten_line_of_a_block(tokens, source_lines, line_num,
+                                              indentation, indent_word,
+                                              newline, aggressive=False):
+        yield candidate
+
+
 def _shorten_line(tokens, source, indentation, indent_word, newline,
                   aggressive=False):
     """Separate line at OPERATOR.
@@ -1112,6 +1157,51 @@ def _shorten_line(tokens, source, indentation, indent_word, newline,
             # Only fix if syntax is okay.
             if check_syntax(normalize_multiline(fixed, newline=newline)
                             if aggressive else fixed):
+                yield indentation + fixed
+
+
+def _shorten_line_of_a_block(tokens, source_block, line_num, indentation,
+                             indent_word, newline, aggressive=False):
+    source = source_block[line_num]
+    for tkn in tokens:
+        # Don't break on '=' after keyword as this violates PEP 8.
+        if token.OP == tkn[0] and tkn[1] != '=':
+            assert tkn[0] != token.INDENT
+
+            offset = tkn[2][1] + 1
+            first = source[:offset]
+
+            second_indent = indentation
+            if first.rstrip().endswith('('):
+                second_indent += indent_word
+            elif '(' in first:
+                second_indent += ' ' * (1 + first.find('('))
+            elif first.rstrip().endswith(','):
+                second_indent = indentation
+            else:
+                second_indent += indent_word
+
+            second = (second_indent + source[offset:].lstrip())
+            if not second.strip():
+                continue
+
+            # Do not begin a line with a comma
+            if second.lstrip().startswith(','):
+                continue
+            # Do end a line with a dot
+            if first.rstrip().endswith('.'):
+                continue
+            if tkn[1] in '+-*/':
+                fixed = first + ' \\' + newline + second
+            else:
+                fixed = first + newline + second
+
+            aggregated_line = (''.join(source_block[:line_num]) + fixed +
+                               ''.join(source_block[line_num + 1:]))
+
+            # Only fix if syntax is okay.
+            if check_syntax(normalize_multiline(aggregated_line, newline)):
+                yield fixed
                 yield indentation + fixed
 
 
