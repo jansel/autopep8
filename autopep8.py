@@ -190,6 +190,7 @@ class FixPEP8(object):
         self.newline = find_newline(self.source)
         self.options = options
         self.indent_word = _get_indentword(''.join(self.source))
+        self.have_reindented = False
 
         # method definition
         self.fix_e111 = self.fix_e101
@@ -265,7 +266,23 @@ class FixPEP8(object):
             'select': self.options.select,
             'max_line_length': self.options.max_line_length,
         }
+        if self.options.indent_size != 4:
+          # we will get false positives from these, since custom indent
+          # violates PEP8
+          if pep8_options['ignore'] == '':
+            pep8_options['ignore'] = []
+          pep8_options['ignore'] += ['E111', 'E121']
+
         results = _execute_pep8(pep8_options, self.source)
+
+        if self.options.indent_size != 4:
+          # make a fake error so we reindent the file, despite the ignore above
+          results.append({
+                u'id': 'E101',
+                u'info': 'E101 Force Reindenter() to run',
+                u'line': 1,
+                u'column': 1,
+                })
 
         if self.options.verbose:
             progress = {}
@@ -279,10 +296,17 @@ class FixPEP8(object):
         self._fix_source(filter_results(source=''.join(self.source),
                                         results=results,
                                         aggressive=self.options.aggressive))
+
         return ''.join(self.source)
 
     def fix_e101(self, _):
         """Reindent all lines."""
+
+        if self.have_reindented:
+          # prevent this global fix from getting run over and over
+          return []
+        self.have_reindented = True
+
         reindenter = Reindenter(self.source,
                                 self.newline,
                                 self.options.indent_size)
@@ -933,7 +957,7 @@ def fix_w6(source):
                      'exitfunc',
                      'has_key',
                      'idioms',
-                     'import',
+                     # 'import',
                      'methodattrs',  # Python >= 2.6
                      'ne',
                      'numliterals',
