@@ -26,11 +26,11 @@ def fix_l99901(source):
 
                     m = re.match(r'^"([^"\'\\]*)"$', val)
                     if m:
-                        newval = "'{0}'".format(m.group(1))
+                        newval = u"'{0}'".format(m.group(1))
 
                     m = re.match(r"^'''([^\"'\\]*)'''$", val)
                     if m:
-                        newval = '"""{0}"""'.format(m.group(1))
+                        newval = u'"""{0}"""'.format(m.group(1))
 
                     if (newval and
                             line.replace(val, newval, 1) == line.replace(val, newval, 2)):
