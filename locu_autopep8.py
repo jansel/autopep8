@@ -11,7 +11,7 @@ except ImportError:
 import autopep8
 
 
-def fix_strings(source):
+def fix_l99901(source):
     """
     Replace "x" strings with 'x' strings
     Replace '''y''' strings with "\""y"\""
@@ -41,7 +41,7 @@ def fix_strings(source):
     return ''.join(lines)
 
 
-def force_utf8_coding(source):
+def fix_l99902(source):
     """
     Force utf-8 encoding
     """
@@ -53,8 +53,8 @@ def force_utf8_coding(source):
             lines.insert(pos, '# coding: utf-8')
     return ''.join(lines)
 
-autopep8.fix_c99901 = fix_strings
-autopep8.fix_c99902 = force_utf8_coding
+autopep8.fix_l99901 = fix_l99901
+autopep8.fix_l99902 = fix_l99902
 autopep8.DEFAULT_INDENT_SIZE = 2
 
 if __name__ == '__main__':
