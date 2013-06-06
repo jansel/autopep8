@@ -743,21 +743,16 @@ class FixPEP8(object):
                 return
             return []
 
-        print('source', source)
-        for t in tokens:
-            print(t)
         candidates = shorten_line(
             tokens, source, indent,
             self.indent_word, newline=self.newline,
             aggressive=self.options.aggressive)
-        print('candidates0', candidates)
 
         candidates = list(sorted(
             set(candidates),
             key=lambda x: line_shortening_rank(x,
                                                self.newline,
                                                self.indent_word)))
-        print('candidates', candidates)
 
         if self.options.verbose >= 4:
             print(('-' * 79 + '\n').join([''] + candidates + ['']),
