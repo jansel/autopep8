@@ -85,6 +85,8 @@ SHORTEN_OPERATOR_GROUPS = frozenset([
 
 DEFAULT_IGNORE = 'E24,W6'
 
+DEFAULT_INDENT_SIZE = 4
+
 
 def open_with_encoding(filename, encoding=None, mode='r'):
     """Return opened file with a specific encoding."""
@@ -267,22 +269,13 @@ class FixPEP8(object):
             'max_line_length': self.options.max_line_length,
         }
         if self.options.indent_size != 4:
-          # we will get false positives from these, since custom indent
-          # violates PEP8
-          if pep8_options['ignore'] == '':
-            pep8_options['ignore'] = []
-          pep8_options['ignore'] += ['E111', 'E121']
+            # we will get false positives from these, since custom indent
+            # violates PEP8
+            if pep8_options['ignore'] == '':
+                pep8_options['ignore'] = []
+            pep8_options['ignore'] += ['E111', 'E121']
 
         results = _execute_pep8(pep8_options, self.source)
-
-        if self.options.indent_size != 4:
-          # make a fake error so we reindent the file, despite the ignore above
-          results.append({
-                u'id': 'E101',
-                u'info': 'E101 Force Reindenter() to run',
-                u'line': 1,
-                u'column': 1,
-                })
 
         if self.options.verbose:
             progress = {}
@@ -303,8 +296,8 @@ class FixPEP8(object):
         """Reindent all lines."""
 
         if self.have_reindented:
-          # prevent this global fix from getting run over and over
-          return []
+            # prevent this global fix from getting run over and over
+            return []
         self.have_reindented = True
 
         reindenter = Reindenter(self.source,
@@ -2039,9 +2032,9 @@ def parse_args(args):
     parser.add_option('--max-line-length', metavar='n', default=79, type=int,
                       help='set maximum allowed line length '
                            '(default: %default)')
-    parser.add_option('--indent-size', default=4, type=int,
-                      help='number of spaces to use for indentation levels'
-                           '(default: %default)')
+    parser.add_option('--indent-size', default=DEFAULT_INDENT_SIZE, type=int,
+                      metavar='n', help='number of spaces to use for '
+                      'indentation levels (default: %default)')
     options, args = parser.parse_args(args)
 
     if not len(args) and not options.list_fixes:
@@ -2351,7 +2344,6 @@ def main():
             fix_multiple_files(filenames, options, sys.stdout)
     except KeyboardInterrupt:
         return 1  # pragma: no cover
-
 
 if __name__ == '__main__':
     sys.exit(main())
