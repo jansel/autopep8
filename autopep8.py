@@ -2214,7 +2214,7 @@ def line_shortening_rank(candidate, newline, indent_word):
         lines = candidate.split(newline)
 
         offset = 0
-        if lines[0].rstrip()[-1] not in '([{':
+        if lines and lines[0].rstrip() and lines[0].rstrip()[-1] not in '([{':
             for symbol in '([{':
                 offset = max(offset, 1 + lines[0].find(symbol))
 
