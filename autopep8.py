@@ -672,9 +672,10 @@ class FixPEP8(object):
                  indentation + 'import ' + target[offset:].lstrip('\t ,'))
         self.source[line_index] = fixed
 
-    def fix_e501(self, result):
+    def fix_e501(self, result, logical):
         """Try to make lines fit within --max-line-length characters."""
         line_index = result['line'] - 1
+        ls, le, _ = logical
         target = self.source[line_index]
 
         if target.lstrip().startswith('#'):
@@ -696,10 +697,10 @@ class FixPEP8(object):
                 self.source[line_index] = fixed
                 return
 
-        indent = _get_indentation(target)
-        source = target[len(indent):]
-        assert source.lstrip() == source
-        sio = StringIO(source)
+        indent = _get_indentation(self.source[ls[0]])
+        logical_source = ' '.join([x.strip() for x in self.source[ls[0]: le[0]+1]]) + self.newline
+        assert logical_source.lstrip() == logical_source
+        sio = StringIO(logical_source)
 
         # Check for multiline string.
         try:
@@ -716,7 +717,7 @@ class FixPEP8(object):
                 return []
 
         candidates = shorten_line(
-            tokens, source, indent,
+            tokens, logical_source, indent,
             self.indent_word, newline=self.newline,
             aggressive=self.options.aggressive)
 
@@ -740,8 +741,10 @@ class FixPEP8(object):
                     get_longest_length(target, self.newline)):
                 continue
 
-            self.source[line_index] = _candidate
-            return
+            self.source[ls[0]] = _candidate
+            for i in range(ls[0] + 1, le[0] + 1):
+              self.source[i] = ''
+            return range(ls[0]+1, le[0]+2)
 
         return []
 
