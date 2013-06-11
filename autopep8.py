@@ -698,14 +698,23 @@ class FixPEP8(object):
                 return
 
         indent = _get_indentation(self.source[ls[0]])
-        logical_source = ' '.join([x.strip() for x in self.source[ls[0]: le[0]+1]]) + self.newline
+        # strip whitespace and just reformat entire logical line
+        logical_sources = []
+        for line in self.source[ls[0]: le[0]+1]:
+          if '#' in line:
+            # likely a comment in this like, give up
+            return []
+          else:
+            logical_sources.append(line.strip())
+        logical_source = ' '.join(logical_sources) + self.newline
         assert logical_source.lstrip() == logical_source
         sio = StringIO(logical_source)
 
-        # Check for multiline string.
         try:
             tokens = list(tokenize.generate_tokens(sio.readline))
         except (SyntaxError, tokenize.TokenError):
+            if self.options.verbose >= 1:
+                print("ERROR: parsing tokens: " + logical_source)
             multiline_candidate = break_multiline(
                 target, newline=self.newline,
                 indent_word=self.indent_word)
@@ -715,6 +724,7 @@ class FixPEP8(object):
                 return
             else:
                 return []
+
 
         candidates = shorten_line(
             tokens, logical_source, indent,
