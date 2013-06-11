@@ -680,8 +680,10 @@ class FixPEP8(object):
 
         if target.lstrip().startswith('#'):
             # Shorten comment if it is the last comment line.
+            # In aggressive mode, always shorten comments.
             try:
-                if self.source[line_index + 1].lstrip().startswith('#'):
+                if (not self.options.aggressive and 
+                    self.source[line_index + 1].lstrip().startswith('#')):
                     return []
             except IndexError:
                 pass
@@ -713,6 +715,8 @@ class FixPEP8(object):
         try:
             tokens = list(tokenize.generate_tokens(sio.readline))
         except (SyntaxError, tokenize.TokenError):
+            # I believe this error no longer happens, with switch to logical
+            # lines
             if self.options.verbose >= 1:
                 print("ERROR: parsing tokens: " + logical_source)
             multiline_candidate = break_multiline(
@@ -725,11 +729,26 @@ class FixPEP8(object):
             else:
                 return []
 
-
         candidates = shorten_line(
             tokens, logical_source, indent,
             self.indent_word, newline=self.newline,
             aggressive=self.options.aggressive)
+
+        token_types = [t[0] for t in tokens if t[0] not in (tokenize.NEWLINE, tokenize.ENDMARKER)]
+        if (self.options.aggressive and token_types == [tokenize.STRING] and
+            logical_source[:3] in ('"""', "''''")):
+          # wrap multiline comment in aggressive mode
+          import textwrap
+          wrapped = textwrap.wrap(logical_source.strip()[3:-3],
+                                  initial_indent=indent,
+                                  subsequent_indent=indent,
+                                  width=self.options.max_line_length,
+                                  break_long_words=False,
+                                  break_on_hyphens=False)
+          candidates = list(candidates)
+          candidates.append(indent + logical_source[:3]  + self.newline +
+                            self.newline.join(wrapped) + self.newline +
+                            indent + logical_source[:3] + self.newline)
 
         candidates = list(sorted(
             set(candidates),
