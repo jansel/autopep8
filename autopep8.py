@@ -682,8 +682,8 @@ class FixPEP8(object):
             # Shorten comment if it is the last comment line.
             # In aggressive mode, always shorten comments.
             try:
-                if (not self.options.aggressive and 
-                    self.source[line_index + 1].lstrip().startswith('#')):
+                if (not self.options.aggressive and
+                        self.source[line_index + 1].lstrip().startswith('#')):
                     return []
             except IndexError:
                 pass
@@ -702,12 +702,12 @@ class FixPEP8(object):
         indent = _get_indentation(self.source[ls[0]])
         # strip whitespace and just reformat entire logical line
         logical_sources = []
-        for line in self.source[ls[0]: le[0]+1]:
-          if '#' in line:
+        for line in self.source[ls[0]: le[0] + 1]:
+            if '#' in line:
             # likely a comment in this like, give up
-            return []
-          else:
-            logical_sources.append(line.strip())
+                return []
+            else:
+                logical_sources.append(line.strip())
         logical_source = ' '.join(logical_sources) + self.newline
         assert logical_source.lstrip() == logical_source
         sio = StringIO(logical_source)
@@ -734,21 +734,22 @@ class FixPEP8(object):
             self.indent_word, newline=self.newline,
             aggressive=self.options.aggressive)
 
-        token_types = [t[0] for t in tokens if t[0] not in (tokenize.NEWLINE, tokenize.ENDMARKER)]
+        token_types = [t[0] for t in tokens
+                       if t[0] not in (tokenize.NEWLINE, tokenize.ENDMARKER)]
         if (self.options.aggressive and token_types == [tokenize.STRING] and
-            logical_source[:3] in ('"""', "''''")):
-          # wrap multiline comment in aggressive mode
-          import textwrap
-          wrapped = textwrap.wrap(logical_source.strip()[3:-3],
-                                  initial_indent=indent,
-                                  subsequent_indent=indent,
-                                  width=self.options.max_line_length,
-                                  break_long_words=False,
-                                  break_on_hyphens=False)
-          candidates = list(candidates)
-          candidates.append(indent + logical_source[:3]  + self.newline +
-                            self.newline.join(wrapped) + self.newline +
-                            indent + logical_source[:3] + self.newline)
+                logical_source[:3] in ('"""', "''''")):
+            # wrap multiline comment in aggressive mode
+            import textwrap
+            wrapped = textwrap.wrap(logical_source.strip()[3:-3],
+                                    initial_indent=indent,
+                                    subsequent_indent=indent,
+                                    width=self.options.max_line_length,
+                                    break_long_words=False,
+                                    break_on_hyphens=False)
+            candidates = list(candidates)
+            candidates.append(indent + logical_source[:3] + self.newline +
+                              self.newline.join(wrapped) + self.newline +
+                              indent + logical_source[:3] + self.newline)
 
         candidates = list(sorted(
             set(candidates),
@@ -772,8 +773,8 @@ class FixPEP8(object):
 
             self.source[ls[0]] = _candidate
             for i in range(ls[0] + 1, le[0] + 1):
-              self.source[i] = ''
-            return range(ls[0]+1, le[0]+2)
+                self.source[i] = ''
+            return range(ls[0] + 1, le[0] + 2)
 
         return []
 
