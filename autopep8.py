@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 #
 # Copyright (C) 2010-2011 Hideo Hattori
 # Copyright (C) 2011-2013 Hideo Hattori, Steven Myint

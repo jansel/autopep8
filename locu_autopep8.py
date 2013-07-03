@@ -64,8 +64,25 @@ def fix_l99902(source):
             lines.insert(pos, '# coding: utf-8\n')
     return ''.join(lines)
 
+def import_repl(m):
+  ws = m.group(1)
+  module = m.group(2)
+  names = m.group(3)
+  if ',' not in names:
+    return m.group(0)
+  rv = []
+  for name in names.split(','):
+    rv.append('%sfrom %s import %s' % (ws, module.strip(), name.replace('\n', ' ').strip()))
+  return '\n'.join(rv)
+
+def fix_l99903(source):
+    source = re.sub(r'^( *)from([a-zA-Z0-9_. ]+)import +([a-zA-Z0-9_, ]+)', import_repl, source, flags=re.MULTILINE)
+    source = re.sub(r'^( *)from([a-zA-Z0-9_. ]+)import +\(([a-zA-Z0-9_, \n]+)\)', import_repl, source, flags=re.MULTILINE)
+    return source
+
 autopep8.fix_l99901 = fix_l99901
 autopep8.fix_l99902 = fix_l99902
+autopep8.fix_l99903 = fix_l99903
 autopep8.DEFAULT_INDENT_SIZE = 2
 
 if __name__ == '__main__':
